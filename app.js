@@ -1,4 +1,7 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+
 import {
+getFirestore,
 collection,
 addDoc,
 getDocs,
@@ -7,10 +10,22 @@ doc,
 deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const classesRef = collection(window.db,"classes");
+const firebaseConfig = {
+  apiKey: "AIzaSyA8qsUf9xIosSBxTEbJCEagybpOFctT0HU",
+  authDomain: "attendance-tracker-55b94.firebaseapp.com",
+  projectId: "attendance-tracker-55b94",
+  storageBucket: "attendance-tracker-55b94.firebasestorage.app",
+  messagingSenderId: "444252780003",
+  appId: "1:444252780003:web:c7995b36acfc04fce7dcd6"
+};
 
-let classData = [];
-let classIds = [];
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const classesRef = collection(db,"classes");
+
+let classData=[];
+let classIds=[];
 
 async function loadClasses(){
 
@@ -47,8 +62,11 @@ let name=document.getElementById("className").value;
 let max=parseInt(document.getElementById("maxLeaves").value);
 
 if(!name||!max){
+
 alert("Enter class name and max leaves");
+
 return;
+
 }
 
 await addDoc(classesRef,{
@@ -72,7 +90,7 @@ data.taken++;
 
 data.dates.push(new Date().toISOString().split("T")[0]);
 
-await updateDoc(doc(window.db,"classes",classIds[index]),data);
+await updateDoc(doc(db,"classes",classIds[index]),data);
 
 loadClasses();
 
@@ -90,7 +108,7 @@ let data=classData[index];
 
 data.max=newMax;
 
-await updateDoc(doc(window.db,"classes",classIds[index]),data);
+await updateDoc(doc(db,"classes",classIds[index]),data);
 
 loadClasses();
 
@@ -100,7 +118,7 @@ async function removeClass(){
 
 let index=document.getElementById("classDropdown").value;
 
-await deleteDoc(doc(window.db,"classes",classIds[index]));
+await deleteDoc(doc(db,"classes",classIds[index]));
 
 loadClasses();
 
@@ -127,22 +145,18 @@ if(!confirm("Delete all classes?")) return;
 const snapshot=await getDocs(classesRef);
 
 snapshot.forEach(async (docSnap)=>{
-await deleteDoc(doc(window.db,"classes",docSnap.id));
+await deleteDoc(doc(db,"classes",docSnap.id));
 });
 
 loadClasses();
 
 }
 
-document.addEventListener("DOMContentLoaded",()=>{
-
-document.getElementById("addBtn").addEventListener("click",addClass);
-document.getElementById("leaveBtn").addEventListener("click",leaveClass);
-document.getElementById("editBtn").addEventListener("click",editMaxLeaves);
-document.getElementById("removeBtn").addEventListener("click",removeClass);
-document.getElementById("showBtn").addEventListener("click",showLeaves);
-document.getElementById("resetBtn").addEventListener("click",resetAll);
+document.getElementById("addBtn").onclick=addClass;
+document.getElementById("leaveBtn").onclick=leaveClass;
+document.getElementById("editBtn").onclick=editMaxLeaves;
+document.getElementById("removeBtn").onclick=removeClass;
+document.getElementById("showBtn").onclick=showLeaves;
+document.getElementById("resetBtn").onclick=resetAll;
 
 loadClasses();
-
-});
