@@ -16,21 +16,21 @@ async function loadClasses(){
 
 const snapshot = await getDocs(classesRef);
 
-classData = [];
-classIds = [];
+classData=[];
+classIds=[];
 
-const dropdown = document.getElementById("classDropdown");
+const dropdown=document.getElementById("classDropdown");
 
 dropdown.innerHTML="";
 
 snapshot.forEach((docSnap,i)=>{
 
-let data = docSnap.data();
+let data=docSnap.data();
 
 classData.push(data);
 classIds.push(docSnap.id);
 
-let option = document.createElement("option");
+let option=document.createElement("option");
 
 option.value=i;
 option.text=data.name;
@@ -44,24 +44,18 @@ dropdown.appendChild(option);
 async function addClass(){
 
 let name=document.getElementById("className").value;
-
 let max=parseInt(document.getElementById("maxLeaves").value);
 
-if(!name || !max){
-
+if(!name||!max){
 alert("Enter class name and max leaves");
-
 return;
-
 }
 
 await addDoc(classesRef,{
-
 name:name,
 max:max,
 taken:0,
 dates:[]
-
 });
 
 loadClasses();
@@ -128,30 +122,27 @@ alert(
 
 async function resetAll(){
 
-if(confirm("Delete all classes?")==false) return;
+if(!confirm("Delete all classes?")) return;
 
-const snapshot = await getDocs(classesRef);
+const snapshot=await getDocs(classesRef);
 
 snapshot.forEach(async (docSnap)=>{
-
 await deleteDoc(doc(window.db,"classes",docSnap.id));
-
 });
 
 loadClasses();
 
 }
 
+document.addEventListener("DOMContentLoaded",()=>{
+
 document.getElementById("addBtn").addEventListener("click",addClass);
-
 document.getElementById("leaveBtn").addEventListener("click",leaveClass);
-
 document.getElementById("editBtn").addEventListener("click",editMaxLeaves);
-
 document.getElementById("removeBtn").addEventListener("click",removeClass);
-
 document.getElementById("showBtn").addEventListener("click",showLeaves);
-
 document.getElementById("resetBtn").addEventListener("click",resetAll);
 
 loadClasses();
+
+});
