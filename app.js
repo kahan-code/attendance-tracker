@@ -24,31 +24,31 @@ const db = getFirestore(app);
 
 const classesRef = collection(db,"classes");
 
-let classData=[];
-let classIds=[];
+let classData = [];
+let classIds = [];
 
 async function loadClasses(){
 
 const snapshot = await getDocs(classesRef);
 
-classData=[];
-classIds=[];
+classData = [];
+classIds = [];
 
-const dropdown=document.getElementById("classDropdown");
+const dropdown = document.getElementById("classDropdown");
 
-dropdown.innerHTML="";
+dropdown.innerHTML = "";
 
 snapshot.forEach((docSnap,i)=>{
 
-let data=docSnap.data();
+let data = docSnap.data();
 
 classData.push(data);
 classIds.push(docSnap.id);
 
-let option=document.createElement("option");
+let option = document.createElement("option");
 
-option.value=i;
-option.text=data.name;
+option.value = i;
+option.text = data.name;
 
 dropdown.appendChild(option);
 
@@ -56,17 +56,36 @@ dropdown.appendChild(option);
 
 }
 
+function getSelectedClass(){
+
+let dropdown = document.getElementById("classDropdown");
+
+if(dropdown.value === ""){
+alert("No class selected");
+return null;
+}
+
+let index = dropdown.value;
+
+let data = classData[index];
+
+if(!data){
+alert("Class not found");
+return null;
+}
+
+return {index,data};
+
+}
+
 async function addClass(){
 
-let name=document.getElementById("className").value;
-let max=parseInt(document.getElementById("maxLeaves").value);
+let name = document.getElementById("className").value;
+let max = parseInt(document.getElementById("maxLeaves").value);
 
-if(!name||!max){
-
+if(!name || !max){
 alert("Enter class name and max leaves");
-
 return;
-
 }
 
 await addDoc(classesRef,{
@@ -82,9 +101,11 @@ loadClasses();
 
 async function leaveClass(){
 
-let index=document.getElementById("classDropdown").value;
+let selected = getSelectedClass();
 
-let data=classData[index];
+if(!selected) return;
+
+let {index,data} = selected;
 
 data.taken++;
 
@@ -98,15 +119,17 @@ loadClasses();
 
 async function editMaxLeaves(){
 
-let index=document.getElementById("classDropdown").value;
+let selected = getSelectedClass();
 
-let newMax=parseInt(prompt("Enter new max leaves"));
+if(!selected) return;
+
+let {index,data} = selected;
+
+let newMax = parseInt(prompt("Enter new max leaves"));
 
 if(!newMax) return;
 
-let data=classData[index];
-
-data.max=newMax;
+data.max = newMax;
 
 await updateDoc(doc(db,"classes",classIds[index]),data);
 
@@ -116,7 +139,11 @@ loadClasses();
 
 async function removeClass(){
 
-let index=document.getElementById("classDropdown").value;
+let selected = getSelectedClass();
+
+if(!selected) return;
+
+let {index} = selected;
 
 await deleteDoc(doc(db,"classes",classIds[index]));
 
@@ -126,9 +153,11 @@ loadClasses();
 
 function showLeaves(){
 
-let index=document.getElementById("classDropdown").value;
+let selected = getSelectedClass();
 
-let data=classData[index];
+if(!selected) return;
+
+let {data} = selected;
 
 alert(
 "Max Leaves: "+data.max+
@@ -142,7 +171,7 @@ async function resetAll(){
 
 if(!confirm("Delete all classes?")) return;
 
-const snapshot=await getDocs(classesRef);
+const snapshot = await getDocs(classesRef);
 
 snapshot.forEach(async (docSnap)=>{
 await deleteDoc(doc(db,"classes",docSnap.id));
@@ -152,11 +181,11 @@ loadClasses();
 
 }
 
-document.getElementById("addBtn").onclick=addClass;
-document.getElementById("leaveBtn").onclick=leaveClass;
-document.getElementById("editBtn").onclick=editMaxLeaves;
-document.getElementById("removeBtn").onclick=removeClass;
-document.getElementById("showBtn").onclick=showLeaves;
-document.getElementById("resetBtn").onclick=resetAll;
+document.getElementById("addBtn").onclick = addClass;
+document.getElementById("leaveBtn").onclick = leaveClass;
+document.getElementById("editBtn").onclick = editMaxLeaves;
+document.getElementById("removeBtn").onclick = removeClass;
+document.getElementById("showBtn").onclick = showLeaves;
+document.getElementById("resetBtn").onclick = resetAll;
 
 loadClasses();
