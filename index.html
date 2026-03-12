@@ -4,7 +4,6 @@
 <head>
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <title>Attendance Leave Tracker</title>
 
 <link rel="stylesheet" href="style.css">
@@ -15,31 +14,18 @@
 
 <h2>Attendance Leave Tracker</h2>
 
-<div>
-
 <label>New Class:</label>
 <input id="className" placeholder="Enter class name">
 
-</div>
-
-<div>
-
 <label>Max Leaves:</label>
 <input id="maxLeaves" type="number" placeholder="Enter number">
-
-</div>
 
 <button id="addBtn" class="green">Add Class</button>
 
 <hr>
 
-<div>
-
 <label>Select Class:</label>
-
 <select id="classDropdown"></select>
-
-</div>
 
 <button id="editBtn" class="orange">Edit Max Leaves</button>
 <button id="removeBtn" class="red">Remove Class</button>
@@ -55,28 +41,6 @@
 <br><br>
 
 <button id="resetBtn" class="red">Reset All</button>
-
-
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyA8qsUf9xIosSBxTEbJCEagybpOFctT0HU",
-  authDomain: "attendance-tracker-55b94.firebaseapp.com",
-  projectId: "attendance-tracker-55b94",
-  storageBucket: "attendance-tracker-55b94.firebasestorage.app",
-  messagingSenderId: "444252780003",
-  appId: "1:444252780003:web:c7995b36acfc04fce7dcd6"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-window.db = db;
-
-</script>
 
 <script type="module" src="app.js"></script>
 
