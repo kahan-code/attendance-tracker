@@ -54,6 +54,11 @@ dropdown.appendChild(option);
 
 });
 
+/* Automatically select first class */
+if(classData.length > 0){
+dropdown.selectedIndex = 0;
+}
+
 }
 
 function getSelectedClass(){
