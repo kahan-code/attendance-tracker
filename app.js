@@ -60,19 +60,19 @@ function getSelectedClass(){
 
 let dropdown = document.getElementById("classDropdown");
 
-if(dropdown.value === ""){
+let index = parseInt(dropdown.value);
+
+if(isNaN(index)){
 alert("No class selected");
 return null;
 }
 
-let index = dropdown.value;
-
-let data = classData[index];
-
-if(!data){
+if(index < 0 || index >= classData.length){
 alert("Class not found");
 return null;
 }
+
+let data = classData[index];
 
 return {index,data};
 
@@ -94,6 +94,9 @@ max:max,
 taken:0,
 dates:[]
 });
+
+document.getElementById("className").value="";
+document.getElementById("maxLeaves").value="";
 
 loadClasses();
 
