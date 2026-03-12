@@ -29,7 +29,7 @@
 
 </div>
 
-<button id="addBtn">Add Class</button>
+<button id="addBtn" class="green">Add Class</button>
 
 <hr>
 
@@ -41,20 +41,20 @@
 
 </div>
 
-<button id="editBtn">Edit Max Leaves</button>
-<button id="removeBtn">Remove Class</button>
+<button id="editBtn" class="orange">Edit Max Leaves</button>
+<button id="removeBtn" class="red">Remove Class</button>
 
 <br><br>
 
-<button id="leaveBtn">I Left This Class</button>
+<button id="leaveBtn" class="blue">I Left This Class</button>
 
 <br><br>
 
-<button id="showBtn">Show Leaves</button>
+<button id="showBtn" class="gray">Show Leaves</button>
 
 <br><br>
 
-<button id="resetBtn">Reset All</button>
+<button id="resetBtn" class="red">Reset All</button>
 
 
 <script type="module">
@@ -72,7 +72,6 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-
 const db = getFirestore(app);
 
 window.db = db;
