@@ -38,7 +38,7 @@ const dropdown = document.getElementById("classDropdown");
 
 dropdown.innerHTML = "";
 
-snapshot.forEach((docSnap,i)=>{
+snapshot.forEach((docSnap)=>{
 
 let data = docSnap.data();
 
@@ -152,16 +152,38 @@ loadClasses();
 
 function showLeaves(){
 
-let selected = getSelectedClass();
-if(!selected) return;
+let tableHTML = `
+<table border="1" style="width:100%;margin-top:20px;border-collapse:collapse">
+<tr>
+<th>Class Name</th>
+<th>Max Leaves</th>
+<th>Leaves Taken</th>
+<th>Leaves Left</th>
+<th>Leave Dates</th>
+</tr>
+`;
 
-let {data} = selected;
+classData.forEach((c)=>{
 
-alert(
-"Max Leaves: "+data.max+
-"\nLeaves Taken: "+data.taken+
-"\nLeave Dates: "+data.dates.join(", ")
-);
+let leavesLeft = c.max - c.taken;
+
+let dates = c.dates.length ? c.dates.join(", ") : "-";
+
+tableHTML += `
+<tr>
+<td>${c.name}</td>
+<td>${c.max}</td>
+<td>${c.taken}</td>
+<td>${leavesLeft}</td>
+<td>${dates}</td>
+</tr>
+`;
+
+});
+
+tableHTML += `</table>`;
+
+document.getElementById("tableArea").innerHTML = tableHTML;
 
 }
 
