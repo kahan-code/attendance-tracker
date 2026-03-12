@@ -1,28 +1,61 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<title>Attendance Tracker</title>
+<title>Attendance Leave Tracker</title>
 
 <link rel="stylesheet" href="style.css">
-<link rel="manifest" href="manifest.json">
 
 </head>
 
 <body>
 
-<h1>Attendance Tracker</h1>
+<h2>Attendance Leave Tracker</h2>
 
-<input id="className" placeholder="Class name">
-<input id="maxLeaves" type="number" placeholder="Max leaves">
+<div>
+
+<label>New Class:</label>
+<input id="className" placeholder="Enter class name">
+
+</div>
+
+<div>
+
+<label>Max Leaves:</label>
+<input id="maxLeaves" type="number" placeholder="Enter number">
+
+</div>
 
 <button id="addBtn">Add Class</button>
 
-<h2>Classes</h2>
+<hr>
 
-<div id="classList"></div>
+<div>
+
+<label>Select Class:</label>
+
+<select id="classDropdown"></select>
+
+</div>
+
+<button id="editBtn">Edit Max Leaves</button>
+<button id="removeBtn">Remove Class</button>
+
+<br><br>
+
+<button id="leaveBtn">I Left This Class</button>
+
+<br><br>
+
+<button id="showBtn">Show Leaves</button>
+
+<br><br>
+
+<button id="resetBtn">Reset All</button>
+
 
 <script type="module">
 
