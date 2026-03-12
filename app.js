@@ -47,17 +47,11 @@ classIds.push(docSnap.id);
 
 let option = document.createElement("option");
 
-option.value = i;
 option.text = data.name;
 
 dropdown.appendChild(option);
 
 });
-
-/* Automatically select first class */
-if(classData.length > 0){
-dropdown.selectedIndex = 0;
-}
 
 }
 
@@ -65,19 +59,19 @@ function getSelectedClass(){
 
 let dropdown = document.getElementById("classDropdown");
 
-let index = parseInt(dropdown.value);
+let index = dropdown.selectedIndex;
 
-if(isNaN(index)){
+if(index === -1){
 alert("No class selected");
 return null;
 }
 
-if(index < 0 || index >= classData.length){
+let data = classData[index];
+
+if(!data){
 alert("Class not found");
 return null;
 }
-
-let data = classData[index];
 
 return {index,data};
 
@@ -110,7 +104,6 @@ loadClasses();
 async function leaveClass(){
 
 let selected = getSelectedClass();
-
 if(!selected) return;
 
 let {index,data} = selected;
@@ -128,7 +121,6 @@ loadClasses();
 async function editMaxLeaves(){
 
 let selected = getSelectedClass();
-
 if(!selected) return;
 
 let {index,data} = selected;
@@ -148,7 +140,6 @@ loadClasses();
 async function removeClass(){
 
 let selected = getSelectedClass();
-
 if(!selected) return;
 
 let {index} = selected;
@@ -162,7 +153,6 @@ loadClasses();
 function showLeaves(){
 
 let selected = getSelectedClass();
-
 if(!selected) return;
 
 let {data} = selected;
