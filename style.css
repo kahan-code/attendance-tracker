@@ -2,29 +2,53 @@ body{
 
 font-family: Arial;
 padding:20px;
-max-width:500px;
+max-width:400px;
 margin:auto;
+background:#2b2b2b;
+color:white;
+
+}
+
+input,select{
+
+padding:8px;
+margin:5px;
+width:100%;
 
 }
 
 button{
 
 padding:10px;
-margin:5px;
+margin:5px 0;
+border:none;
+color:white;
+cursor:pointer;
+width:100%;
+font-weight:bold;
 
 }
 
-input{
-
-padding:10px;
-margin:5px;
-
+.green{
+background:#4CAF50;
 }
 
-.classCard{
+.orange{
+background:#ff9800;
+}
 
-border:1px solid #ccc;
-padding:10px;
-margin-top:10px;
+.red{
+background:#f44336;
+}
 
+.blue{
+background:#00bcd4;
+}
+
+.gray{
+background:#555;
+}
+
+button:hover{
+opacity:0.8;
 }
