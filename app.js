@@ -27,7 +27,34 @@ const classesRef = collection(db,"classes");
 let classData = [];
 let classIds = [];
 
+function clearClassEditor(){
+document.getElementById("editClassName").value = "";
+document.getElementById("editMaxLeaves").value = "";
+document.getElementById("editClassName").disabled = true;
+document.getElementById("editMaxLeaves").disabled = true;
+document.getElementById("saveClassBtn").disabled = true;
+}
+
+function fillClassEditor(){
+let selected = getSelectedClass();
+
+if(!selected){
+clearClassEditor();
+return;
+}
+
+let {data} = selected;
+
+document.getElementById("editClassName").value = data.name;
+document.getElementById("editMaxLeaves").value = data.max;
+document.getElementById("editClassName").disabled = false;
+document.getElementById("editMaxLeaves").disabled = false;
+document.getElementById("saveClassBtn").disabled = false;
+}
+
 async function loadClasses(){
+
+const previouslySelectedId = classIds[document.getElementById("classDropdown").selectedIndex];
 
 const snapshot = await getDocs(classesRef);
 
@@ -48,10 +75,29 @@ classIds.push(docSnap.id);
 let option = document.createElement("option");
 
 option.text = data.name;
+option.value = docSnap.id;
 
 dropdown.appendChild(option);
 
 });
+
+if(previouslySelectedId){
+const selectedIndex = classIds.indexOf(previouslySelectedId);
+if(selectedIndex !== -1){
+dropdown.selectedIndex = selectedIndex;
+}
+}
+
+if(dropdown.options.length > 0 && dropdown.selectedIndex === -1){
+dropdown.selectedIndex = 0;
+}
+
+if(dropdown.options.length === 0){
+clearClassEditor();
+return;
+}
+
+fillClassEditor();
 
 }
 
@@ -118,25 +164,6 @@ loadClasses();
 
 }
 
-async function editMaxLeaves(){
-
-let selected = getSelectedClass();
-if(!selected) return;
-
-let {index,data} = selected;
-
-let newMax = parseInt(prompt("Enter new max leaves"));
-
-if(!newMax) return;
-
-data.max = newMax;
-
-await updateDoc(doc(db,"classes",classIds[index]),data);
-
-loadClasses();
-
-}
-
 async function removeClass(){
 
 let selected = getSelectedClass();
@@ -145,6 +172,40 @@ if(!selected) return;
 let {index} = selected;
 
 await deleteDoc(doc(db,"classes",classIds[index]));
+
+loadClasses();
+
+}
+
+async function saveClassChanges(){
+
+let selected = getSelectedClass();
+if(!selected) return;
+
+let {index,data} = selected;
+
+let newName = document.getElementById("editClassName").value.trim();
+let newMax = parseInt(document.getElementById("editMaxLeaves").value);
+
+if(!newName){
+alert("Class name cannot be empty");
+return;
+}
+
+if(Number.isNaN(newMax) || newMax < 0){
+alert("Enter a valid max leaves number");
+return;
+}
+
+if(newMax < data.taken){
+alert("Max leaves cannot be less than leaves already taken");
+return;
+}
+
+data.name = newName;
+data.max = newMax;
+
+await updateDoc(doc(db,"classes",classIds[index]),data);
 
 loadClasses();
 
@@ -203,9 +264,10 @@ loadClasses();
 
 document.getElementById("addBtn").onclick = addClass;
 document.getElementById("leaveBtn").onclick = leaveClass;
-document.getElementById("editBtn").onclick = editMaxLeaves;
 document.getElementById("removeBtn").onclick = removeClass;
 document.getElementById("showBtn").onclick = showLeaves;
 document.getElementById("resetBtn").onclick = resetAll;
+document.getElementById("saveClassBtn").onclick = saveClassChanges;
+document.getElementById("classDropdown").onchange = fillClassEditor;
 
 loadClasses();
