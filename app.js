@@ -26,13 +26,55 @@ const classesRef = collection(db,"classes");
 
 let classData = [];
 let classIds = [];
+let editingDateIndex = null;
+
+function normalizeDates(dates){
+if(!Array.isArray(dates)) return [];
+return dates.filter((d)=>typeof d === "string" && d.trim() !== "");
+}
+
+function resetDateEditorState(){
+editingDateIndex = null;
+document.getElementById("leaveDateInput").value = "";
+document.getElementById("saveDateBtn").textContent = "Add Leave Date";
+document.getElementById("cancelDateEditBtn").disabled = true;
+}
 
 function clearClassEditor(){
 document.getElementById("editClassName").value = "";
 document.getElementById("editMaxLeaves").value = "";
+document.getElementById("editLeavesTaken").value = "";
 document.getElementById("editClassName").disabled = true;
 document.getElementById("editMaxLeaves").disabled = true;
+document.getElementById("editLeavesTaken").disabled = true;
+document.getElementById("leaveDateInput").disabled = true;
+document.getElementById("saveDateBtn").disabled = true;
+document.getElementById("cancelDateEditBtn").disabled = true;
 document.getElementById("saveClassBtn").disabled = true;
+document.getElementById("dateList").innerHTML = "";
+resetDateEditorState();
+}
+
+function renderDateList(data){
+const container = document.getElementById("dateList");
+const dates = normalizeDates(data.dates);
+
+if(dates.length === 0){
+container.innerHTML = "<p class='date-empty'>No leave dates yet.</p>";
+return;
+}
+
+const items = dates.map((dateValue,index)=>`
+<div class="date-item">
+<span>${dateValue}</span>
+<div class="date-actions">
+<button type="button" class="small-btn blue date-edit-btn" data-index="${index}">Edit</button>
+<button type="button" class="small-btn red date-remove-btn" data-index="${index}">Remove</button>
+</div>
+</div>
+`).join("");
+
+container.innerHTML = items;
 }
 
 function fillClassEditor(){
@@ -47,9 +89,15 @@ let {data} = selected;
 
 document.getElementById("editClassName").value = data.name;
 document.getElementById("editMaxLeaves").value = data.max;
+document.getElementById("editLeavesTaken").value = data.taken;
 document.getElementById("editClassName").disabled = false;
 document.getElementById("editMaxLeaves").disabled = false;
+document.getElementById("editLeavesTaken").disabled = false;
+document.getElementById("leaveDateInput").disabled = false;
+document.getElementById("saveDateBtn").disabled = false;
 document.getElementById("saveClassBtn").disabled = false;
+resetDateEditorState();
+renderDateList(data);
 }
 
 async function loadClasses(){
@@ -186,6 +234,8 @@ let {index,data} = selected;
 
 let newName = document.getElementById("editClassName").value.trim();
 let newMax = parseInt(document.getElementById("editMaxLeaves").value);
+let newTaken = parseInt(document.getElementById("editLeavesTaken").value);
+const dateCount = normalizeDates(data.dates).length;
 
 if(!newName){
 alert("Class name cannot be empty");
@@ -197,18 +247,148 @@ alert("Enter a valid max leaves number");
 return;
 }
 
-if(newMax < data.taken){
-alert("Max leaves cannot be less than leaves already taken");
+if(Number.isNaN(newTaken) || newTaken < 0){
+alert("Enter a valid leaves taken number");
+return;
+}
+
+if(newTaken < dateCount){
+alert("Leaves taken cannot be less than number of saved leave dates");
+return;
+}
+
+if(newMax < newTaken){
+alert("Max leaves cannot be less than leaves taken");
 return;
 }
 
 data.name = newName;
 data.max = newMax;
+data.taken = newTaken;
 
-await updateDoc(doc(db,"classes",classIds[index]),data);
+await updateDoc(doc(db,"classes",classIds[index]),{
+name:data.name,
+max:data.max,
+taken:data.taken,
+dates:normalizeDates(data.dates)
+});
 
 loadClasses();
 
+}
+
+async function saveLeaveDate(){
+
+let selected = getSelectedClass();
+if(!selected) return;
+
+let {index,data} = selected;
+
+const pickedDate = document.getElementById("leaveDateInput").value;
+
+if(!pickedDate){
+alert("Pick a leave date first");
+return;
+}
+
+const dates = normalizeDates(data.dates);
+const duplicateIndex = dates.findIndex((d)=>d === pickedDate);
+
+if(duplicateIndex !== -1 && duplicateIndex !== editingDateIndex){
+alert("This leave date already exists");
+return;
+}
+
+if(editingDateIndex === null){
+dates.push(pickedDate);
+}else{
+dates[editingDateIndex] = pickedDate;
+}
+
+data.dates = dates;
+data.taken = dates.length;
+
+if(data.max < data.taken){
+alert("Increase max leaves before adding this many leave dates");
+return;
+}
+
+await updateDoc(doc(db,"classes",classIds[index]),{
+name:data.name,
+max:data.max,
+taken:data.taken,
+dates:data.dates
+});
+
+loadClasses();
+
+}
+
+function startEditLeaveDate(index){
+const selected = getSelectedClass();
+if(!selected) return;
+
+const {data} = selected;
+const dates = normalizeDates(data.dates);
+const existingDate = dates[index];
+
+if(!existingDate) return;
+
+editingDateIndex = index;
+document.getElementById("leaveDateInput").value = existingDate;
+document.getElementById("saveDateBtn").textContent = "Update Leave Date";
+document.getElementById("cancelDateEditBtn").disabled = false;
+}
+
+async function removeLeaveDate(index){
+const selected = getSelectedClass();
+if(!selected) return;
+
+const {data} = selected;
+const dates = normalizeDates(data.dates);
+
+if(!dates[index]) return;
+
+const dateToRemove = dates[index];
+const className = data.name || "this class";
+if(!confirm(`Remove ${dateToRemove} from ${className}?`)) return;
+
+dates.splice(index,1);
+data.dates = dates;
+data.taken = dates.length;
+
+await updateDoc(doc(db,"classes",classIds[selected.index]),{
+name:data.name,
+max:data.max,
+taken:data.taken,
+dates:data.dates
+});
+
+loadClasses();
+
+}
+
+function handleDateListClick(event){
+const editBtn = event.target.closest(".date-edit-btn");
+const removeBtn = event.target.closest(".date-remove-btn");
+
+if(editBtn){
+const idx = parseInt(editBtn.dataset.index);
+if(Number.isNaN(idx)) return;
+startEditLeaveDate(idx);
+return;
+}
+
+if(removeBtn){
+const idx = parseInt(removeBtn.dataset.index);
+if(Number.isNaN(idx)) return;
+removeLeaveDate(idx);
+}
+
+}
+
+function cancelLeaveDateEdit(){
+resetDateEditorState();
 }
 
 function showLeaves(){
@@ -269,5 +449,8 @@ document.getElementById("showBtn").onclick = showLeaves;
 document.getElementById("resetBtn").onclick = resetAll;
 document.getElementById("saveClassBtn").onclick = saveClassChanges;
 document.getElementById("classDropdown").onchange = fillClassEditor;
+document.getElementById("saveDateBtn").onclick = saveLeaveDate;
+document.getElementById("cancelDateEditBtn").onclick = cancelLeaveDateEdit;
+document.getElementById("dateList").onclick = handleDateListClick;
 
 loadClasses();
