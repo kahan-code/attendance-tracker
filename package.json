@@ -1,0 +1,25 @@
+{
+  "name": "attendance-tracker",
+  "version": "1.0.0",
+  "description": "A clean, responsive attendance tracker that stores class and leave data in Supabase.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "serve . -l 4173"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kahan-code/attendance-tracker.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/kahan-code/attendance-tracker/issues"
+  },
+  "homepage": "https://github.com/kahan-code/attendance-tracker#readme",
+  "dependencies": {
+    "serve": "^14.2.6"
+  }
+}

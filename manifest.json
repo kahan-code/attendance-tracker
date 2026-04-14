@@ -1,8 +1,8 @@
 {
-"name":"Attendance Tracker",
-"short_name":"Attendance",
-"start_url":"/",
+"name":"Attendance Leave Tracker",
+"short_name":"Tracker",
+"start_url":"./",
 "display":"standalone",
-"background_color":"#ffffff",
-"theme_color":"#000000"
+"background_color":"#f3f8f6",
+"theme_color":"#117a65"
 }

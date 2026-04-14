@@ -1,456 +1,504 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-import {
-getFirestore,
-collection,
-addDoc,
-getDocs,
-updateDoc,
-doc,
-deleteDoc
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+const SUPABASE_URL = "https://hwdwhrtsjhpbjcfzjcky.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Znet58KwaxCwGcgxxabHbw_bsf6eoY0";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyA8qsUf9xIosSBxTEbJCEagybpOFctT0HU",
-  authDomain: "attendance-tracker-55b94.firebaseapp.com",
-  projectId: "attendance-tracker-55b94",
-  storageBucket: "attendance-tracker-55b94.firebasestorage.app",
-  messagingSenderId: "444252780003",
-  appId: "1:444252780003:web:c7995b36acfc04fce7dcd6"
+const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+const els = {
+  statusBanner: document.getElementById("statusBanner"),
+  newClassName: document.getElementById("newClassName"),
+  newMaxLeaves: document.getElementById("newMaxLeaves"),
+  addClassBtn: document.getElementById("addClassBtn"),
+  classSelect: document.getElementById("classSelect"),
+  markLeaveBtn: document.getElementById("markLeaveBtn"),
+  removeClassBtn: document.getElementById("removeClassBtn"),
+  editClassName: document.getElementById("editClassName"),
+  editMaxLeaves: document.getElementById("editMaxLeaves"),
+  editLeavesTaken: document.getElementById("editLeavesTaken"),
+  saveClassBtn: document.getElementById("saveClassBtn"),
+  leaveDateInput: document.getElementById("leaveDateInput"),
+  saveDateBtn: document.getElementById("saveDateBtn"),
+  cancelDateEditBtn: document.getElementById("cancelDateEditBtn"),
+  dateList: document.getElementById("dateList"),
+  statTotalClasses: document.getElementById("statTotalClasses"),
+  statTotalTaken: document.getElementById("statTotalTaken"),
+  statTotalRemaining: document.getElementById("statTotalRemaining"),
+  showTableBtn: document.getElementById("showTableBtn"),
+  resetAllBtn: document.getElementById("resetAllBtn"),
+  tableWrap: document.getElementById("tableWrap"),
+  tableArea: document.getElementById("tableArea")
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const state = {
+  classes: [],
+  selectedId: null,
+  editingDateIndex: null,
+  tableVisible: false
+};
 
-const classesRef = collection(db,"classes");
-
-let classData = [];
-let classIds = [];
-let editingDateIndex = null;
-
-function normalizeDates(dates){
-if(!Array.isArray(dates)) return [];
-return dates.filter((d)=>typeof d === "string" && d.trim() !== "");
+function escapeHTML(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
-function resetDateEditorState(){
-editingDateIndex = null;
-document.getElementById("leaveDateInput").value = "";
-document.getElementById("saveDateBtn").textContent = "Add Leave Date";
-document.getElementById("cancelDateEditBtn").disabled = true;
+function normalizeDates(dates) {
+  if (!Array.isArray(dates)) return [];
+  return dates.filter((d) => typeof d === "string" && d.trim() !== "");
 }
 
-function clearClassEditor(){
-document.getElementById("editClassName").value = "";
-document.getElementById("editMaxLeaves").value = "";
-document.getElementById("editLeavesTaken").value = "";
-document.getElementById("editClassName").disabled = true;
-document.getElementById("editMaxLeaves").disabled = true;
-document.getElementById("editLeavesTaken").disabled = true;
-document.getElementById("leaveDateInput").disabled = true;
-document.getElementById("saveDateBtn").disabled = true;
-document.getElementById("cancelDateEditBtn").disabled = true;
-document.getElementById("saveClassBtn").disabled = true;
-document.getElementById("dateList").innerHTML = "";
-resetDateEditorState();
+function getTodayISO() {
+  return new Date().toISOString().split("T")[0];
 }
 
-function renderDateList(data){
-const container = document.getElementById("dateList");
-const dates = normalizeDates(data.dates);
-
-if(dates.length === 0){
-container.innerHTML = "<p class='date-empty'>No leave dates yet.</p>";
-return;
+function setStatus(message, type = "info") {
+  els.statusBanner.textContent = message;
+  els.statusBanner.className = `status-banner show ${type}`;
 }
 
-const items = dates.map((dateValue,index)=>`
-<div class="date-item">
-<span>${dateValue}</span>
-<div class="date-actions">
-<button type="button" class="small-btn blue date-edit-btn" data-index="${index}">Edit</button>
-<button type="button" class="small-btn red date-remove-btn" data-index="${index}">Remove</button>
-</div>
-</div>
-`).join("");
-
-container.innerHTML = items;
+function clearStatus() {
+  els.statusBanner.textContent = "";
+  els.statusBanner.className = "status-banner";
 }
 
-function fillClassEditor(){
-let selected = getSelectedClass();
-
-if(!selected){
-clearClassEditor();
-return;
+function setEditorDisabled(disabled) {
+  els.editClassName.disabled = disabled;
+  els.editMaxLeaves.disabled = disabled;
+  els.editLeavesTaken.disabled = disabled;
+  els.leaveDateInput.disabled = disabled;
+  els.saveDateBtn.disabled = disabled;
+  els.cancelDateEditBtn.disabled = disabled;
+  els.saveClassBtn.disabled = disabled;
 }
 
-let {data} = selected;
-
-document.getElementById("editClassName").value = data.name;
-document.getElementById("editMaxLeaves").value = data.max;
-document.getElementById("editLeavesTaken").value = data.taken;
-document.getElementById("editClassName").disabled = false;
-document.getElementById("editMaxLeaves").disabled = false;
-document.getElementById("editLeavesTaken").disabled = false;
-document.getElementById("leaveDateInput").disabled = false;
-document.getElementById("saveDateBtn").disabled = false;
-document.getElementById("saveClassBtn").disabled = false;
-resetDateEditorState();
-renderDateList(data);
+function resetDateEditor() {
+  state.editingDateIndex = null;
+  els.leaveDateInput.value = "";
+  els.saveDateBtn.textContent = "Add Leave Date";
+  els.cancelDateEditBtn.disabled = true;
 }
 
-async function loadClasses(){
-
-const previouslySelectedId = classIds[document.getElementById("classDropdown").selectedIndex];
-
-const snapshot = await getDocs(classesRef);
-
-classData = [];
-classIds = [];
-
-const dropdown = document.getElementById("classDropdown");
-
-dropdown.innerHTML = "";
-
-snapshot.forEach((docSnap)=>{
-
-let data = docSnap.data();
-
-classData.push(data);
-classIds.push(docSnap.id);
-
-let option = document.createElement("option");
-
-option.text = data.name;
-option.value = docSnap.id;
-
-dropdown.appendChild(option);
-
-});
-
-if(previouslySelectedId){
-const selectedIndex = classIds.indexOf(previouslySelectedId);
-if(selectedIndex !== -1){
-dropdown.selectedIndex = selectedIndex;
-}
+function clearClassEditor() {
+  els.editClassName.value = "";
+  els.editMaxLeaves.value = "";
+  els.editLeavesTaken.value = "";
+  els.dateList.innerHTML = "<p class='date-empty'>No class selected.</p>";
+  setEditorDisabled(true);
+  resetDateEditor();
 }
 
-if(dropdown.options.length > 0 && dropdown.selectedIndex === -1){
-dropdown.selectedIndex = 0;
+function getSelectedClass() {
+  return state.classes.find((item) => String(item.id) === String(state.selectedId)) || null;
 }
 
-if(dropdown.options.length === 0){
-clearClassEditor();
-return;
+function renderClassOptions() {
+  const options = state.classes
+    .map(
+      (item) =>
+        `<option value="${escapeHTML(item.id)}">${escapeHTML(item.name || "Untitled class")}</option>`
+    )
+    .join("");
+
+  els.classSelect.innerHTML = options;
+
+  if (!state.classes.length) {
+    state.selectedId = null;
+    clearClassEditor();
+    return;
+  }
+
+  if (!state.selectedId || !state.classes.some((item) => String(item.id) === String(state.selectedId))) {
+    state.selectedId = state.classes[0].id;
+  }
+
+  els.classSelect.value = String(state.selectedId);
+  fillClassEditor();
 }
 
-fillClassEditor();
+function renderDateList(classItem) {
+  const dates = normalizeDates(classItem.dates);
 
+  if (!dates.length) {
+    els.dateList.innerHTML = "<p class='date-empty'>No leave dates yet.</p>";
+    return;
+  }
+
+  els.dateList.innerHTML = dates
+    .map(
+      (dateValue, index) => `
+        <div class="date-item">
+          <span>${escapeHTML(dateValue)}</span>
+          <div class="date-actions">
+            <button type="button" class="small-btn btn-secondary date-edit-btn" data-index="${index}">Edit</button>
+            <button type="button" class="small-btn btn-danger date-remove-btn" data-index="${index}">Remove</button>
+          </div>
+        </div>
+      `
+    )
+    .join("");
 }
 
-function getSelectedClass(){
+function fillClassEditor() {
+  const selected = getSelectedClass();
+  if (!selected) {
+    clearClassEditor();
+    return;
+  }
 
-let dropdown = document.getElementById("classDropdown");
-
-let index = dropdown.selectedIndex;
-
-if(index === -1){
-alert("No class selected");
-return null;
+  els.editClassName.value = selected.name || "";
+  els.editMaxLeaves.value = Number(selected.max) || 0;
+  els.editLeavesTaken.value = Number(selected.taken) || 0;
+  setEditorDisabled(false);
+  resetDateEditor();
+  renderDateList(selected);
 }
 
-let data = classData[index];
+function renderStats() {
+  const totals = state.classes.reduce(
+    (acc, item) => {
+      const max = Number(item.max) || 0;
+      const taken = Number(item.taken) || 0;
+      acc.totalClasses += 1;
+      acc.totalTaken += taken;
+      acc.totalRemaining += max - taken;
+      return acc;
+    },
+    { totalClasses: 0, totalTaken: 0, totalRemaining: 0 }
+  );
 
-if(!data){
-alert("Class not found");
-return null;
+  els.statTotalClasses.textContent = String(totals.totalClasses);
+  els.statTotalTaken.textContent = String(totals.totalTaken);
+  els.statTotalRemaining.textContent = String(totals.totalRemaining);
 }
 
-return {index,data};
+function renderTable() {
+  if (!state.classes.length) {
+    els.tableArea.innerHTML = "<p class='date-empty'>No classes available.</p>";
+    return;
+  }
 
+  const rows = state.classes
+    .map((item) => {
+      const max = Number(item.max) || 0;
+      const taken = Number(item.taken) || 0;
+      const dates = normalizeDates(item.dates);
+      return `
+        <tr>
+          <td>${escapeHTML(item.name || "Untitled class")}</td>
+          <td>${max}</td>
+          <td>${taken}</td>
+          <td>${max - taken}</td>
+          <td>${escapeHTML(dates.length ? dates.join(", ") : "-")}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  els.tableArea.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Class Name</th>
+          <th>Max Leaves</th>
+          <th>Leaves Taken</th>
+          <th>Leaves Left</th>
+          <th>Leave Dates</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
 }
 
-async function addClass(){
+async function fetchClasses() {
+  const { data, error } = await supabase.from("classes").select("*").order("id", { ascending: true });
 
-let name = document.getElementById("className").value;
-let max = parseInt(document.getElementById("maxLeaves").value);
+  if (error) {
+    setStatus(`Failed to load classes: ${error.message}`, "error");
+    return;
+  }
 
-if(!name || !max){
-alert("Enter class name and max leaves");
-return;
+  state.classes = (data || []).map((item) => ({
+    ...item,
+    max: Number(item.max) || 0,
+    taken: Number(item.taken) || 0,
+    dates: normalizeDates(item.dates)
+  }));
+
+  renderClassOptions();
+  renderStats();
+  renderTable();
+  if (!state.classes.length) {
+    setStatus("No classes yet. Add your first class.", "info");
+  } else {
+    clearStatus();
+  }
 }
 
-await addDoc(classesRef,{
-name:name,
-max:max,
-taken:0,
-dates:[]
-});
-
-document.getElementById("className").value="";
-document.getElementById("maxLeaves").value="";
-
-loadClasses();
-
+async function updateClass(classId, payload) {
+  const { error } = await supabase.from("classes").update(payload).eq("id", classId);
+  if (error) throw error;
 }
 
-async function leaveClass(){
+async function addClass() {
+  const name = els.newClassName.value.trim();
+  const max = Number.parseInt(els.newMaxLeaves.value, 10);
 
-let selected = getSelectedClass();
-if(!selected) return;
+  if (!name || Number.isNaN(max) || max <= 0) {
+    setStatus("Enter a valid class name and max leaves.", "error");
+    return;
+  }
 
-let {index,data} = selected;
+  const { error } = await supabase.from("classes").insert({
+    name,
+    max,
+    taken: 0,
+    dates: []
+  });
 
-data.taken++;
+  if (error) {
+    setStatus(`Could not add class: ${error.message}`, "error");
+    return;
+  }
 
-data.dates.push(new Date().toISOString().split("T")[0]);
-
-await updateDoc(doc(db,"classes",classIds[index]),data);
-
-loadClasses();
-
+  els.newClassName.value = "";
+  els.newMaxLeaves.value = "";
+  setStatus(`Class "${name}" added.`, "success");
+  await fetchClasses();
 }
 
-async function removeClass(){
+async function markLeave() {
+  const selected = getSelectedClass();
+  if (!selected) {
+    setStatus("Select a class first.", "error");
+    return;
+  }
 
-let selected = getSelectedClass();
-if(!selected) return;
+  const dates = normalizeDates(selected.dates);
+  dates.push(getTodayISO());
 
-let {index} = selected;
+  if (dates.length > selected.max) {
+    setStatus("Max leaves reached. Increase max leaves before adding more dates.", "error");
+    return;
+  }
 
-await deleteDoc(doc(db,"classes",classIds[index]));
-
-loadClasses();
-
+  try {
+    await updateClass(selected.id, { dates, taken: dates.length });
+    setStatus("Leave marked for today.", "success");
+    await fetchClasses();
+  } catch (error) {
+    setStatus(`Could not mark leave: ${error.message}`, "error");
+  }
 }
 
-async function saveClassChanges(){
+async function removeClass() {
+  const selected = getSelectedClass();
+  if (!selected) {
+    setStatus("Select a class first.", "error");
+    return;
+  }
 
-let selected = getSelectedClass();
-if(!selected) return;
+  if (!confirm(`Remove ${selected.name || "this class"}?`)) return;
 
-let {index,data} = selected;
+  const { error } = await supabase.from("classes").delete().eq("id", selected.id);
+  if (error) {
+    setStatus(`Could not remove class: ${error.message}`, "error");
+    return;
+  }
 
-let newName = document.getElementById("editClassName").value.trim();
-let newMax = parseInt(document.getElementById("editMaxLeaves").value);
-let newTaken = parseInt(document.getElementById("editLeavesTaken").value);
-const dateCount = normalizeDates(data.dates).length;
-
-if(!newName){
-alert("Class name cannot be empty");
-return;
+  setStatus("Class removed.", "success");
+  await fetchClasses();
 }
 
-if(Number.isNaN(newMax) || newMax < 0){
-alert("Enter a valid max leaves number");
-return;
+async function saveClassChanges() {
+  const selected = getSelectedClass();
+  if (!selected) {
+    setStatus("Select a class first.", "error");
+    return;
+  }
+
+  const newName = els.editClassName.value.trim();
+  const newMax = Number.parseInt(els.editMaxLeaves.value, 10);
+  const newTaken = Number.parseInt(els.editLeavesTaken.value, 10);
+  const dateCount = normalizeDates(selected.dates).length;
+
+  if (!newName) {
+    setStatus("Class name cannot be empty.", "error");
+    return;
+  }
+
+  if (Number.isNaN(newMax) || newMax < 0) {
+    setStatus("Enter a valid max leaves value.", "error");
+    return;
+  }
+
+  if (Number.isNaN(newTaken) || newTaken < 0) {
+    setStatus("Enter a valid leaves taken value.", "error");
+    return;
+  }
+
+  if (newTaken < dateCount) {
+    setStatus("Leaves taken cannot be less than saved leave dates.", "error");
+    return;
+  }
+
+  if (newMax < newTaken) {
+    setStatus("Max leaves cannot be less than leaves taken.", "error");
+    return;
+  }
+
+  try {
+    await updateClass(selected.id, {
+      name: newName,
+      max: newMax,
+      taken: newTaken,
+      dates: normalizeDates(selected.dates)
+    });
+    setStatus("Class details updated.", "success");
+    await fetchClasses();
+  } catch (error) {
+    setStatus(`Could not save class: ${error.message}`, "error");
+  }
 }
 
-if(Number.isNaN(newTaken) || newTaken < 0){
-alert("Enter a valid leaves taken number");
-return;
+async function saveLeaveDate() {
+  const selected = getSelectedClass();
+  if (!selected) {
+    setStatus("Select a class first.", "error");
+    return;
+  }
+
+  const pickedDate = els.leaveDateInput.value;
+  if (!pickedDate) {
+    setStatus("Pick a leave date first.", "error");
+    return;
+  }
+
+  const dates = normalizeDates(selected.dates);
+  const duplicateIndex = dates.findIndex((d) => d === pickedDate);
+  if (duplicateIndex !== -1 && duplicateIndex !== state.editingDateIndex) {
+    setStatus("This leave date already exists.", "error");
+    return;
+  }
+
+  if (state.editingDateIndex === null) {
+    dates.push(pickedDate);
+  } else {
+    dates[state.editingDateIndex] = pickedDate;
+  }
+
+  if (dates.length > selected.max) {
+    setStatus("Increase max leaves before adding this many leave dates.", "error");
+    return;
+  }
+
+  try {
+    await updateClass(selected.id, { dates, taken: dates.length });
+    setStatus("Leave dates updated.", "success");
+    await fetchClasses();
+  } catch (error) {
+    setStatus(`Could not save leave date: ${error.message}`, "error");
+  }
 }
 
-if(newTaken < dateCount){
-alert("Leaves taken cannot be less than number of saved leave dates");
-return;
+function startEditLeaveDate(index) {
+  const selected = getSelectedClass();
+  if (!selected) return;
+
+  const dates = normalizeDates(selected.dates);
+  const existing = dates[index];
+  if (!existing) return;
+
+  state.editingDateIndex = index;
+  els.leaveDateInput.value = existing;
+  els.saveDateBtn.textContent = "Update Leave Date";
+  els.cancelDateEditBtn.disabled = false;
 }
 
-if(newMax < newTaken){
-alert("Max leaves cannot be less than leaves taken");
-return;
+async function removeLeaveDate(index) {
+  const selected = getSelectedClass();
+  if (!selected) return;
+
+  const dates = normalizeDates(selected.dates);
+  if (!dates[index]) return;
+
+  if (!confirm(`Remove ${dates[index]} from ${selected.name || "this class"}?`)) return;
+
+  dates.splice(index, 1);
+
+  try {
+    await updateClass(selected.id, { dates, taken: dates.length });
+    setStatus("Leave date removed.", "success");
+    await fetchClasses();
+  } catch (error) {
+    setStatus(`Could not remove leave date: ${error.message}`, "error");
+  }
 }
 
-data.name = newName;
-data.max = newMax;
-data.taken = newTaken;
-
-await updateDoc(doc(db,"classes",classIds[index]),{
-name:data.name,
-max:data.max,
-taken:data.taken,
-dates:normalizeDates(data.dates)
-});
-
-loadClasses();
-
+function cancelDateEdit() {
+  resetDateEditor();
 }
 
-async function saveLeaveDate(){
+function handleDateListClick(event) {
+  const editBtn = event.target.closest(".date-edit-btn");
+  const removeBtn = event.target.closest(".date-remove-btn");
 
-let selected = getSelectedClass();
-if(!selected) return;
+  if (editBtn) {
+    const index = Number.parseInt(editBtn.dataset.index, 10);
+    if (!Number.isNaN(index)) startEditLeaveDate(index);
+    return;
+  }
 
-let {index,data} = selected;
-
-const pickedDate = document.getElementById("leaveDateInput").value;
-
-if(!pickedDate){
-alert("Pick a leave date first");
-return;
+  if (removeBtn) {
+    const index = Number.parseInt(removeBtn.dataset.index, 10);
+    if (!Number.isNaN(index)) removeLeaveDate(index);
+  }
 }
 
-const dates = normalizeDates(data.dates);
-const duplicateIndex = dates.findIndex((d)=>d === pickedDate);
-
-if(duplicateIndex !== -1 && duplicateIndex !== editingDateIndex){
-alert("This leave date already exists");
-return;
+function toggleTable() {
+  state.tableVisible = !state.tableVisible;
+  els.tableWrap.classList.toggle("hidden", !state.tableVisible);
+  els.showTableBtn.textContent = state.tableVisible ? "Hide Leaves Table" : "Show Leaves Table";
 }
 
-if(editingDateIndex === null){
-dates.push(pickedDate);
-}else{
-dates[editingDateIndex] = pickedDate;
+async function resetAll() {
+  if (!confirm("Delete all classes?")) return;
+
+  const { error } = await supabase.from("classes").delete().not("id", "is", null);
+  if (error) {
+    setStatus(`Could not reset classes: ${error.message}`, "error");
+    return;
+  }
+
+  setStatus("All classes deleted.", "success");
+  await fetchClasses();
 }
 
-data.dates = dates;
-data.taken = dates.length;
-
-if(data.max < data.taken){
-alert("Increase max leaves before adding this many leave dates");
-return;
+function handleSelectChange() {
+  state.selectedId = els.classSelect.value || null;
+  fillClassEditor();
 }
 
-await updateDoc(doc(db,"classes",classIds[index]),{
-name:data.name,
-max:data.max,
-taken:data.taken,
-dates:data.dates
-});
-
-loadClasses();
-
+function wireEvents() {
+  els.addClassBtn.addEventListener("click", addClass);
+  els.markLeaveBtn.addEventListener("click", markLeave);
+  els.removeClassBtn.addEventListener("click", removeClass);
+  els.saveClassBtn.addEventListener("click", saveClassChanges);
+  els.saveDateBtn.addEventListener("click", saveLeaveDate);
+  els.cancelDateEditBtn.addEventListener("click", cancelDateEdit);
+  els.showTableBtn.addEventListener("click", toggleTable);
+  els.resetAllBtn.addEventListener("click", resetAll);
+  els.classSelect.addEventListener("change", handleSelectChange);
+  els.dateList.addEventListener("click", handleDateListClick);
 }
 
-function startEditLeaveDate(index){
-const selected = getSelectedClass();
-if(!selected) return;
-
-const {data} = selected;
-const dates = normalizeDates(data.dates);
-const existingDate = dates[index];
-
-if(!existingDate) return;
-
-editingDateIndex = index;
-document.getElementById("leaveDateInput").value = existingDate;
-document.getElementById("saveDateBtn").textContent = "Update Leave Date";
-document.getElementById("cancelDateEditBtn").disabled = false;
+async function init() {
+  wireEvents();
+  await fetchClasses();
 }
 
-async function removeLeaveDate(index){
-const selected = getSelectedClass();
-if(!selected) return;
-
-const {data} = selected;
-const dates = normalizeDates(data.dates);
-
-if(!dates[index]) return;
-
-const dateToRemove = dates[index];
-const className = data.name || "this class";
-if(!confirm(`Remove ${dateToRemove} from ${className}?`)) return;
-
-dates.splice(index,1);
-data.dates = dates;
-data.taken = dates.length;
-
-await updateDoc(doc(db,"classes",classIds[selected.index]),{
-name:data.name,
-max:data.max,
-taken:data.taken,
-dates:data.dates
-});
-
-loadClasses();
-
-}
-
-function handleDateListClick(event){
-const editBtn = event.target.closest(".date-edit-btn");
-const removeBtn = event.target.closest(".date-remove-btn");
-
-if(editBtn){
-const idx = parseInt(editBtn.dataset.index);
-if(Number.isNaN(idx)) return;
-startEditLeaveDate(idx);
-return;
-}
-
-if(removeBtn){
-const idx = parseInt(removeBtn.dataset.index);
-if(Number.isNaN(idx)) return;
-removeLeaveDate(idx);
-}
-
-}
-
-function cancelLeaveDateEdit(){
-resetDateEditorState();
-}
-
-function showLeaves(){
-
-let tableHTML = `
-<table border="1" style="width:100%;margin-top:20px;border-collapse:collapse">
-<tr>
-<th>Class Name</th>
-<th>Max Leaves</th>
-<th>Leaves Taken</th>
-<th>Leaves Left</th>
-<th>Leave Dates</th>
-</tr>
-`;
-
-classData.forEach((c)=>{
-
-let leavesLeft = c.max - c.taken;
-
-let dates = c.dates.length ? c.dates.join(", ") : "-";
-
-tableHTML += `
-<tr>
-<td>${c.name}</td>
-<td>${c.max}</td>
-<td>${c.taken}</td>
-<td>${leavesLeft}</td>
-<td>${dates}</td>
-</tr>
-`;
-
-});
-
-tableHTML += `</table>`;
-
-document.getElementById("tableArea").innerHTML = tableHTML;
-
-}
-
-async function resetAll(){
-
-if(!confirm("Delete all classes?")) return;
-
-const snapshot = await getDocs(classesRef);
-
-snapshot.forEach(async (docSnap)=>{
-await deleteDoc(doc(db,"classes",docSnap.id));
-});
-
-loadClasses();
-
-}
-
-document.getElementById("addBtn").onclick = addClass;
-document.getElementById("leaveBtn").onclick = leaveClass;
-document.getElementById("removeBtn").onclick = removeClass;
-document.getElementById("showBtn").onclick = showLeaves;
-document.getElementById("resetBtn").onclick = resetAll;
-document.getElementById("saveClassBtn").onclick = saveClassChanges;
-document.getElementById("classDropdown").onchange = fillClassEditor;
-document.getElementById("saveDateBtn").onclick = saveLeaveDate;
-document.getElementById("cancelDateEditBtn").onclick = cancelLeaveDateEdit;
-document.getElementById("dateList").onclick = handleDateListClick;
-
-loadClasses();
+init();

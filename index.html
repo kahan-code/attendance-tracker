@@ -1,76 +1,106 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Attendance Leave Tracker</title>
-
-<link rel="stylesheet" href="style.css">
-
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Attendance Leave Tracker</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="style.css">
 </head>
-
 <body>
+	<main class="app-shell">
+		<header class="hero">
+			<p class="eyebrow">Smart Attendance Dashboard</p>
+			<h1>Attendance Leave Tracker</h1>
+			<p class="hero-copy">Track classes, log leave dates, and keep your leave balance visible at a glance.</p>
+		</header>
 
-<h2>Attendance Leave Tracker</h2>
+		<p id="statusBanner" class="status-banner" aria-live="polite"></p>
 
-<label>New Class:</label>
-<input id="className" placeholder="Enter class name">
+		<section class="panel panel-grid">
+			<article class="card">
+				<h2>Add New Class</h2>
+				<label for="newClassName">Class Name</label>
+				<input id="newClassName" placeholder="Example: Algorithms">
 
-<label>Max Leaves:</label>
-<input id="maxLeaves" type="number" placeholder="Enter number">
+				<label for="newMaxLeaves">Max Leaves</label>
+				<input id="newMaxLeaves" type="number" min="1" placeholder="Example: 5">
 
-<button id="addBtn" class="green">Add Class</button>
+				<button id="addClassBtn" class="btn btn-primary">Add Class</button>
+			</article>
 
-<hr>
+			<article class="card">
+				<h2>Class Actions</h2>
+				<label for="classSelect">Select Class</label>
+				<select id="classSelect"></select>
 
-<label>Select Class:</label>
-<select id="classDropdown"></select>
+				<div class="button-row">
+					<button id="markLeaveBtn" class="btn btn-accent">I Left This Class</button>
+					<button id="removeClassBtn" class="btn btn-danger">Remove Class</button>
+				</div>
+			</article>
+		</section>
 
-<button id="removeBtn" class="red">Remove Class</button>
+		<section class="stats">
+			<article class="stat-card">
+				<h3>Total Classes</h3>
+				<p id="statTotalClasses">0</p>
+			</article>
+			<article class="stat-card">
+				<h3>Total Leaves Taken</h3>
+				<p id="statTotalTaken">0</p>
+			</article>
+			<article class="stat-card">
+				<h3>Total Leaves Remaining</h3>
+				<p id="statTotalRemaining">0</p>
+			</article>
+		</section>
 
-<div class="editor-box">
-<h3>Edit Selected Class</h3>
+		<section class="panel">
+			<article class="card">
+				<h2>Edit Selected Class</h2>
 
-<label>Edit Class Name:</label>
-<input id="editClassName" placeholder="Select a class to edit" disabled>
+				<label for="editClassName">Class Name</label>
+				<input id="editClassName" placeholder="Select a class" disabled>
 
-<label>Edit Max Leaves:</label>
-<input id="editMaxLeaves" type="number" placeholder="Enter max leaves" disabled>
+				<label for="editMaxLeaves">Max Leaves</label>
+				<input id="editMaxLeaves" type="number" min="0" disabled>
 
-<label>Edit Leaves Taken:</label>
-<input id="editLeavesTaken" type="number" placeholder="Enter leaves taken" disabled>
+				<label for="editLeavesTaken">Leaves Taken</label>
+				<input id="editLeavesTaken" type="number" min="0" disabled>
 
-<div class="date-editor">
-<h4>Manage Leave Dates</h4>
+				<button id="saveClassBtn" class="btn btn-warning" disabled>Save Class Changes</button>
+			</article>
 
-<label>Leave Date:</label>
-<input id="leaveDateInput" type="date" disabled>
+			<article class="card">
+				<h2>Manage Leave Dates</h2>
 
-<button id="saveDateBtn" class="blue" disabled>Add Leave Date</button>
-<button id="cancelDateEditBtn" class="gray" disabled>Cancel Date Edit</button>
+				<label for="leaveDateInput">Leave Date</label>
+				<input id="leaveDateInput" type="date" disabled>
 
-<div id="dateList" class="date-list"></div>
-</div>
+				<div class="button-row">
+					<button id="saveDateBtn" class="btn btn-secondary" disabled>Add Leave Date</button>
+					<button id="cancelDateEditBtn" class="btn btn-neutral" disabled>Cancel Date Edit</button>
+				</div>
 
-<button id="saveClassBtn" class="orange" disabled>Save Class Changes</button>
-</div>
+				<div id="dateList" class="date-list"></div>
+			</article>
+		</section>
 
-<br><br>
+		<section class="panel">
+			<div class="button-row">
+				<button id="showTableBtn" class="btn btn-neutral">Show Leaves Table</button>
+				<button id="resetAllBtn" class="btn btn-danger">Reset All Classes</button>
+			</div>
 
-<button id="leaveBtn" class="blue">I Left This Class</button>
+			<div id="tableWrap" class="table-wrap hidden">
+				<div id="tableArea"></div>
+			</div>
+		</section>
+	</main>
 
-<br><br>
-
-<button id="showBtn" class="gray">Show Leaves</button>
-
-<br><br>
-
-<button id="resetBtn" class="red">Reset All</button>
-
-<div id="tableArea"></div>
-
-<script type="module" src="app.js"></script>
-
+	<script type="module" src="app.js"></script>
 </body>
 </html>
