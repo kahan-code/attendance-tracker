@@ -4,6 +4,7 @@
   "description": "A clean, responsive attendance tracker that stores class and leave data in Supabase.",
   "main": "app.js",
   "scripts": {
+    "dev": "serve . -l 4173",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "serve . -l 4173"
   },

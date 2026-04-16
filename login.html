@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Login | Attendance Leave Tracker</title>
+	<link rel="icon" type="image/svg+xml" href="favicon.svg">
+	<link rel="manifest" href="manifest.json">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="style.css">
+</head>
+<body>
+	<main class="app-shell login-shell">
+		<header class="hero">
+			<p class="eyebrow">Private Access</p>
+			<h1>Welcome Back</h1>
+			<p class="hero-copy">Sign in or create an account to manage your own attendance records.</p>
+		</header>
+
+		<p id="loginStatusBanner" class="status-banner" aria-live="polite"></p>
+
+		<section class="panel auth-panel">
+			<article class="card">
+				<h2>Account Access</h2>
+				<p class="auth-copy">Your attendance data is separated per account.</p>
+
+				<label for="authEmail">Email</label>
+				<input id="authEmail" type="email" placeholder="you@example.com" autocomplete="email">
+
+				<label for="authPassword">Password</label>
+				<input id="authPassword" type="password" placeholder="At least 6 characters" autocomplete="current-password">
+
+				<div class="button-row">
+					<button id="signInBtn" class="btn btn-primary">Sign In</button>
+					<button id="signUpBtn" class="btn btn-secondary">Sign Up</button>
+				</div>
+			</article>
+		</section>
+	</main>
+
+	<script type="module" src="login.js"></script>
+</body>
+</html>

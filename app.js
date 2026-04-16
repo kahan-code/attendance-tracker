@@ -6,6 +6,8 @@ const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Znet58KwaxCwGcgxxabHbw_bsf6eoY0
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 const els = {
+  signOutBtn: document.getElementById("signOutBtn"),
+  authStateText: document.getElementById("authStateText"),
   statusBanner: document.getElementById("statusBanner"),
   newClassName: document.getElementById("newClassName"),
   newMaxLeaves: document.getElementById("newMaxLeaves"),
@@ -34,7 +36,8 @@ const state = {
   classes: [],
   selectedId: null,
   editingDateIndex: null,
-  tableVisible: false
+  tableVisible: false,
+  currentUser: null
 };
 
 function escapeHTML(value) {
@@ -65,6 +68,10 @@ function clearStatus() {
   els.statusBanner.className = "status-banner";
 }
 
+function redirectToLogin() {
+  window.location.replace("login.html");
+}
+
 function setEditorDisabled(disabled) {
   els.editClassName.disabled = disabled;
   els.editMaxLeaves.disabled = disabled;
@@ -93,6 +100,11 @@ function clearClassEditor() {
 
 function getSelectedClass() {
   return state.classes.find((item) => String(item.id) === String(state.selectedId)) || null;
+}
+
+function renderAuthState() {
+  const email = state.currentUser?.email || "Signed in";
+  els.authStateText.textContent = `Signed in as ${email}`;
 }
 
 function renderClassOptions() {
@@ -215,7 +227,11 @@ function renderTable() {
 }
 
 async function fetchClasses() {
-  const { data, error } = await supabase.from("classes").select("*").order("id", { ascending: true });
+  const { data, error } = await supabase
+    .from("classes")
+    .select("*")
+    .eq("user_id", state.currentUser.id)
+    .order("id", { ascending: true });
 
   if (error) {
     setStatus(`Failed to load classes: ${error.message}`, "error");
@@ -240,8 +256,25 @@ async function fetchClasses() {
 }
 
 async function updateClass(classId, payload) {
-  const { error } = await supabase.from("classes").update(payload).eq("id", classId);
+  const { error } = await supabase
+    .from("classes")
+    .update(payload)
+    .eq("id", classId)
+    .eq("user_id", state.currentUser.id);
   if (error) throw error;
+}
+
+async function signOut() {
+  els.signOutBtn.disabled = true;
+  const { error } = await supabase.auth.signOut();
+
+  if (error) {
+    els.signOutBtn.disabled = false;
+    setStatus(`Sign out failed: ${error.message}`, "error");
+    return;
+  }
+
+  redirectToLogin();
 }
 
 async function addClass() {
@@ -254,6 +287,7 @@ async function addClass() {
   }
 
   const { error } = await supabase.from("classes").insert({
+    user_id: state.currentUser.id,
     name,
     max,
     taken: 0,
@@ -304,7 +338,11 @@ async function removeClass() {
 
   if (!confirm(`Remove ${selected.name || "this class"}?`)) return;
 
-  const { error } = await supabase.from("classes").delete().eq("id", selected.id);
+  const { error } = await supabase
+    .from("classes")
+    .delete()
+    .eq("id", selected.id)
+    .eq("user_id", state.currentUser.id);
   if (error) {
     setStatus(`Could not remove class: ${error.message}`, "error");
     return;
@@ -468,7 +506,7 @@ function toggleTable() {
 async function resetAll() {
   if (!confirm("Delete all classes?")) return;
 
-  const { error } = await supabase.from("classes").delete().not("id", "is", null);
+  const { error } = await supabase.from("classes").delete().eq("user_id", state.currentUser.id);
   if (error) {
     setStatus(`Could not reset classes: ${error.message}`, "error");
     return;
@@ -484,6 +522,7 @@ function handleSelectChange() {
 }
 
 function wireEvents() {
+  els.signOutBtn.addEventListener("click", signOut);
   els.addClassBtn.addEventListener("click", addClass);
   els.markLeaveBtn.addEventListener("click", markLeave);
   els.removeClassBtn.addEventListener("click", removeClass);
@@ -497,8 +536,32 @@ function wireEvents() {
 }
 
 async function init() {
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError) {
+    setStatus(`Session check failed: ${sessionError.message}`, "error");
+    return;
+  }
+
+  state.currentUser = sessionData?.session?.user ?? null;
+  if (!state.currentUser) {
+    redirectToLogin();
+    return;
+  }
+
   wireEvents();
+  renderAuthState();
   await fetchClasses();
+
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    state.currentUser = session?.user ?? null;
+    if (event === "SIGNED_OUT" || !state.currentUser) {
+      redirectToLogin();
+      return;
+    }
+
+    renderAuthState();
+    await fetchClasses();
+  });
 }
 
 init();

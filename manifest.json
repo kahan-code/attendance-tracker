@@ -1,7 +1,7 @@
 {
 "name":"Attendance Leave Tracker",
 "short_name":"Tracker",
-"start_url":"./",
+"start_url":"./login.html",
 "display":"standalone",
 "background_color":"#f3f8f6",
 "theme_color":"#117a65",

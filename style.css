@@ -78,6 +78,33 @@ h1 {
 	color: transparent;
 }
 
+.auth-panel .card {
+	background: linear-gradient(180deg, #ffffff, #f7fbfa);
+}
+
+.login-shell {
+	width: min(640px, 94vw);
+}
+
+.account-bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+.auth-copy {
+	margin: 0;
+	color: var(--muted);
+}
+
+.auth-state {
+	margin: 0;
+	font-weight: 600;
+	color: var(--primary-strong);
+}
+
 .status-banner.show {
 	color: var(--ink);
 }
